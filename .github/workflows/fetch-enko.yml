@@ -1,0 +1,38 @@
+name: Fetch EN-KO Bergamot Model
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fetch-enko.yml'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Download model files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p enko-model
+          base='https://storage.googleapis.com/moz-fx-translations-data--303e-prod-translations-data/models/en-ko/cjk_retrain_base-memory_GP50C3MpQ9apCWZOW-f3PA/exported'
+          for f in \
+            model.enko.intgemm.alphas.bin.gz \
+            srcvocab.enko.spm.gz \
+            trgvocab.enko.spm.gz \
+            lex.50.50.enko.s2t.bin.gz; do
+            curl --fail --location --retry 5 --retry-delay 2 "$base/$f" -o "enko-model/$f"
+          done
+          gzip -d enko-model/*.gz
+          sha256sum enko-model/* | tee enko-model/SHA256SUMS
+          ls -lh enko-model
+
+      - name: Upload model artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: enko-bergamot-model
+          path: enko-model/
+          compression-level: 0
+          retention-days: 1
